@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Carteira Web
 
-## Getting Started
+Frontend da carteira digital, feito com **Next.js**. Consome a API Laravel (autenticação, saldo, depósito, transferência e histórico de transações).
 
-First, run the development server:
+## Requisitos
+
+- [Node.js](https://nodejs.org/) 20+
+- API Laravel rodando (padrão: `http://localhost:8000/api`)
+- Para Docker: [Docker Desktop](https://www.docker.com/products/docker-desktop/) (ou Docker Engine + Compose)
+
+## Variáveis de ambiente
+
+Copie o exemplo e ajuste se necessário:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Variável | Descrição |
+|----------|-----------|
+| `NEXT_PUBLIC_API_URL` | URL da API acessível pelo navegador (ex.: `http://localhost:8000/api`) |
+| `PORT` | Porta no host ao usar Docker (padrão: `3000`) |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Rodar localmente (desenvolvimento)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+npm run dev
+```
 
-## Learn More
+Acesse [http://localhost:3000](http://localhost:3000).
 
-To learn more about Next.js, take a look at the following resources:
+## Rodar com Docker
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Garanta que a API Laravel está acessível (no host ou em outro container).
+2. Configure o `.env` se a URL da API for diferente do padrão.
+3. Suba o frontend:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+docker compose up --build
+```
 
-## Deploy on Vercel
+Acesse [http://localhost:3000](http://localhost:3000).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Comandos úteis
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+# Em segundo plano
+docker compose up -d --build
+
+# Parar
+docker compose down
+
+# Rebuild (obrigatório após alterar NEXT_PUBLIC_API_URL)
+docker compose build --no-cache && docker compose up -d
+```
+
+> **Nota:** `NEXT_PUBLIC_API_URL` é definida no **build** da imagem. Se mudar essa variável, rode o build novamente com `--no-cache`.
+
+## Scripts
+
+| Comando | Descrição |
+|---------|-----------|
+| `npm run dev` | Servidor de desenvolvimento |
+| `npm run build` | Build de produção |
+| `npm run start` | Servidor de produção (após o build) |
+| `npm run lint` | ESLint |
+
+## Estrutura principal
+
+```
+src/
+  app/           # Páginas (login, registro, dashboard)
+  components/    # UI e layout
+  contexts/      # Autenticação
+  lib/           # Cliente da API e utilitários
+```
