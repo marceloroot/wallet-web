@@ -28,11 +28,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { api } from "@/lib/api";
+import { api, ApiClientError } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { Recipient, Transaction } from "@/types/wallet";
 
 type ActionKey = "deposit" | "transfer";
+
+function isInsufficientBalanceError(message: string, err: unknown): boolean {
+  if (message.toLowerCase().includes("saldo insuficiente")) {
+    return true;
+  }
+  return err instanceof ApiClientError && err.code === "insufficient_balance";
+}
 
 export default function DashboardPage() {
   const [balance, setBalance] = useState(0);
@@ -83,7 +90,11 @@ export default function DashboardPage() {
   async function handleAction(
     action: () => Promise<unknown>,
     successMessage: string,
-    options?: { actionKey?: ActionKey; reversingId?: number },
+    options?: {
+      actionKey?: ActionKey;
+      reversingId?: number;
+      onError?: (parsed: { message: string; fieldErrors?: Record<string, string[]> }, err: unknown) => void;
+    },
   ) {
     setSuccess(null);
     setError(null);
@@ -97,10 +108,13 @@ export default function DashboardPage() {
       setRefreshing(true);
       await loadData();
       setSuccess(successMessage);
+      return true;
     } catch (err) {
       const parsed = getErrorMessage(err);
       setError(parsed.message);
       setFieldErrors(parsed.fieldErrors);
+      options?.onError?.(parsed, err);
+      return false;
     } finally {
       setActionLoading(null);
       setReversingId(null);
@@ -122,13 +136,23 @@ export default function DashboardPage() {
   async function onTransfer(e: FormEvent) {
     e.preventDefault();
     const amount = parseFloat(transferAmount);
-    await handleAction(
+    const amountForDeposit = transferAmount;
+    const success = await handleAction(
       () => api.transfer(Number(toUserId), amount),
       `Transferência de ${formatCurrency(amount)} realizada com sucesso.`,
-      { actionKey: "transfer" },
+      {
+        actionKey: "transfer",
+        onError: (parsed, err) => {
+          if (isInsufficientBalanceError(parsed.message, err)) {
+            setDepositAmount(amountForDeposit);
+          }
+        },
+      },
     );
-    setTransferAmount("");
-    setToUserId("");
+    if (success) {
+      setTransferAmount("");
+      setToUserId("");
+    }
   }
 
   async function onReverse(id: number) {
